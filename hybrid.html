@@ -1,0 +1,1580 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0f">
+<meta name="description" content="Lucky Loop · Reel Breaker — 免费玩币（play-money）老虎机打砖块小游戏，18+，仅娱乐。">
+<title>Lucky Loop · Reel Breaker</title>
+<style>
+  /* ============ 1. 主题变量：深色 + 金箔赌场风（与 Lucky Loop 线上站点一致） ============ */
+  :root{
+    --ink:#0b0b0f; --panel:#14131b; --gold:#e9c46a; --gold-2:#f4d587;
+    --text:#f4efe3; --muted:#9a94a6; --line:rgba(233,196,106,.22);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--ink);color:var(--text)}
+  body{
+    min-height:100vh; min-height:100dvh;
+    font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    display:flex; justify-content:center; align-items:flex-start;
+    background:
+      radial-gradient(900px 520px at 50% -12%, rgba(233,196,106,.11), transparent 70%),
+      radial-gradient(620px 420px at 50% 112%, rgba(123,108,246,.09), transparent 70%),
+      var(--ink);
+    -webkit-tap-highlight-color:transparent;
+  }
+  #app{width:100%; max-width:680px; margin:0 auto; padding:16px 14px 28px}
+
+  /* ============ 2. 顶部品牌区 ============ */
+  header{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px}
+  .brand{display:flex; align-items:center; gap:10px; min-width:0}
+  .brand .logo{
+    width:34px;height:34px;flex:0 0 34px;border-radius:50%;
+    border:2px solid var(--gold); display:grid;place-items:center;
+    font-family:Georgia,serif;font-weight:700;color:var(--gold);font-size:18px;
+    box-shadow:0 0 14px rgba(233,196,106,.28), inset 0 0 10px rgba(233,196,106,.16);
+  }
+  .brand h1{
+    font-family:Georgia,"Times New Roman",serif; font-size:clamp(17px,4.6vw,25px);
+    letter-spacing:.05em; margin:0; color:var(--gold); white-space:nowrap;
+  }
+  .brand small{display:block; font-size:9px; letter-spacing:.24em; color:var(--muted); text-transform:uppercase; margin-top:2px}
+  .badge{
+    font-size:10px; letter-spacing:.1em; color:var(--muted);
+    border:1px solid var(--line); border-radius:999px; padding:6px 10px; white-space:nowrap;
+  }
+  .badge b{color:var(--gold); font-weight:600}
+
+  /* ============ 3. 得分统计 HUD ============ */
+  #hud{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:10px}
+  .stat{
+    background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
+    border:1px solid var(--line); border-radius:12px; padding:8px 6px; text-align:center;
+  }
+  .stat b{display:block; font-size:clamp(14px,4.2vw,20px); color:var(--gold); font-variant-numeric:tabular-nums; line-height:1.25}
+  .stat span{display:block; font-size:9px; color:var(--muted); letter-spacing:.15em; text-transform:uppercase; margin-top:2px}
+
+  /* ============ 4. 画布舞台与覆盖层 ============ */
+  #stage{
+    position:relative; width:100%; overflow:hidden; border:1px solid var(--line);
+    border-radius:18px; background:#07070b;
+    box-shadow:0 24px 60px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.02);
+  }
+  #game{display:block; width:100%; height:auto; aspect-ratio:640/800; touch-action:none; cursor:crosshair}
+  .overlay{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    padding:20px; text-align:center;
+    background:rgba(7,7,11,.80); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
+  }
+  .overlay[hidden]{display:none}
+  .card{max-width:430px; width:100%}
+  .kicker{font-size:10px; letter-spacing:.3em; color:var(--gold); text-transform:uppercase}
+  .card h2{font-family:Georgia,serif; font-size:clamp(26px,7vw,40px); margin:10px 0 8px; letter-spacing:.02em}
+  .card p{color:var(--muted); font-size:13px; line-height:1.75; margin:0 0 16px}
+  .card p b{color:var(--gold)}
+  .symbols{display:flex; justify-content:center; gap:6px; flex-wrap:wrap; margin:0 0 18px}
+  .chip{
+    font-size:10px; color:var(--text); border:1px solid var(--c); border-radius:999px;
+    padding:4px 9px; background:color-mix(in srgb, var(--c) 14%, transparent);
+  }
+  .btn{
+    appearance:none; border:1px solid var(--line); border-radius:12px; cursor:pointer;
+    font-size:13px; font-weight:600; letter-spacing:.04em; padding:11px 16px;
+    color:var(--text); background:rgba(255,255,255,.05); transition:transform .12s ease, filter .12s ease;
+    font-family:inherit;
+  }
+  .btn:hover{filter:brightness(1.15)}
+  .btn:active{transform:scale(.97)}
+  .btn:focus-visible{outline:2px solid var(--gold); outline-offset:3px}
+  .btn.primary{background:linear-gradient(180deg,var(--gold-2),#c99b3f); color:#1a1408; border-color:transparent; font-weight:700}
+  .btn.ghost{background:transparent}
+  .btn-row{display:flex; gap:8px; justify-content:center; flex-wrap:wrap}
+  .overlay .fineprint{font-size:11px; color:#6f6a7a; margin:14px 0 0}
+
+  /* ============ 5. 底部控制条 ============ */
+  #controls{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap}
+  #controls .btn{flex:1 1 90px}
+  .rules{
+    margin-top:14px; padding-top:12px; border-top:1px dashed var(--line);
+    font-size:12px; color:var(--muted); line-height:1.85;
+  }
+  .rules b{color:var(--gold); font-weight:600}
+  .fineprint{margin-top:12px; font-size:11px; color:#6f6a7a; text-align:center; line-height:1.7}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+  /* ============ 6. 响应式与降级 ============ */
+  @media (max-width:430px){
+    #app{padding:10px 8px 20px}
+    #hud{gap:5px}
+    .stat{padding:6px 3px}
+    .badge{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="brand">
+      <div class="logo" aria-hidden="true">L</div>
+      <div>
+        <h1>Lucky Loop · Reel Breaker</h1>
+        <small>Free play-money arcade</small>
+      </div>
+    </div>
+    <div class="badge"><b>18+</b> · PLAY MONEY ONLY</div>
+  </header>
+
+  <!-- 得分统计：DOM 实现，便于读屏软件与 aria-live 播报 -->
+  <div id="hud" role="group" aria-label="游戏得分统计">
+    <div class="stat"><b id="sScore">0</b><span>Score</span></div>
+    <div class="stat"><b id="sBest">0</b><span>Best</span></div>
+    <div class="stat"><b id="sLevel">1</b><span>Level</span></div>
+    <div class="stat"><b id="sLives">♥♥♥</b><span>Lives</span></div>
+  </div>
+
+  <div id="stage">
+    <!-- 逻辑坐标固定 640×800，CSS 等比缩放；DPR 由 JS 处理 -->
+    <canvas id="game" width="640" height="800" aria-label="打砖块游戏画面"></canvas>
+    <div id="overlay" class="overlay" hidden></div>
+  </div>
+
+  <div id="controls">
+    <button class="btn primary" id="btnStart" type="button">开始 / 发球</button>
+    <button class="btn ghost" id="btnPause" type="button">暂停 (P)</button>
+    <button class="btn ghost" id="btnRestart" type="button">重新开始</button>
+    <button class="btn ghost" id="btnSound" type="button" aria-pressed="false">音效：关</button>
+  </div>
+
+  <div class="rules">
+    <b>玩法</b>：← → / A D 或触屏滑动移动挡板，<b>空格 / 点击</b>发球。击碎老虎机符号砖块得分，
+    连续命中可叠加 <b>Combo 加成</b>；每敲碎 <b>8 块</b>触发一次 <b>FREE SPIN</b>，三个符号相同中大奖（+500 且 +1 命）。
+    球落底扣 1 命，3 命用尽游戏结束；清空全部砖块进入下一关且球速递增。
+  </div>
+  <p class="fineprint">娱乐用途 · 虚拟币 · 无真实货币、充值、提现或奖品 · 18+ · 无网络请求、无第三方依赖</p>
+
+  <!-- 读屏播报区 -->
+  <div id="live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+</div>
+
+<script>
+'use strict';
+/* =========================================================================
+ * Lucky Loop · Reel Breaker
+ * 单文件 H5 打砖块小游戏：HTML + CSS + 原生 JS 全在本文件内。
+ * 零外部依赖：所有图形（老虎机符号、粒子、光晕、转轮）均由 Canvas 绘制。
+ * 适配：PC 键盘 keydown/keyup + 鼠标，移动端 touchstart/touchmove。
+ * ========================================================================= */
+
+/* ============ 0. 画布与通用工具 ============ */
+const W = 640, H = 800;          // 逻辑坐标系；CSS 负责等比缩放
+const TOP = 92;                  // 顶部状态条高度，球在此线以下反弹
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const $ = (id) => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rand = (a, b) => a + Math.random() * (b - a);
+const reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+/** 高分屏适配：把位图按 devicePixelRatio 放大，再把绘图坐标还原为逻辑坐标 */
+function resizeCanvas(){
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width  = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+/** 圆角矩形路径（Canvas 原生 roundRect 在旧 WebView 不可用，故自行实现） */
+function roundRect(g, x, y, w, h, r){
+  r = Math.min(r, w / 2, h / 2);
+  g.beginPath();
+  g.moveTo(x + r, y);
+  g.arcTo(x + w, y,     x + w, y + h, r);
+  g.arcTo(x + w, y + h, x,     y + h, r);
+  g.arcTo(x,     y + h, x,     y,     r);
+  g.arcTo(x,     y,     x + w, y,     r);
+  g.closePath();
+}
+
+/** 星形路径 */
+function starPath(g, cx, cy, rOuter, rInner, points){
+  g.beginPath();
+  for (let i = 0; i < points * 2; i++){
+    const r = (i % 2 === 0) ? rOuter : rInner;
+    const a = -Math.PI / 2 + i * Math.PI / points;
+    const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+    if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+  }
+  g.closePath();
+}
+
+/* ============ 1. 老虎机符号表（沿用 Lucky Loop 的符号与赔率精神） ============
+ * score = 该符号的赔付倍数 ×10，作为打砖块的单块基础分。
+ * 所有图形都用 Canvas 绘制，不引用任何图片文件。
+ */
+const SYMBOLS = [
+  { id:'cherry',  name:'樱桃',   score:8,   color:'#e0483f' },
+  { id:'star',    name:'星星',   score:12,  color:'#8b7cf8' },
+  { id:'clover',  name:'四叶草', score:20,  color:'#49b578' },
+  { id:'bell',    name:'铃铛',   score:40,  color:'#d9a441' },
+  { id:'diamond', name:'钻石',   score:100, color:'#42b9e8' },
+  { id:'seven',   name:'7',      score:200, color:'#f2d16b' },
+];
+
+/** 在 (cx,cy) 处绘制一个尺寸为 s 的符号 */
+function drawSymbol(g, id, cx, cy, s){
+  const sym = SYMBOLS.find(v => v.id === id) || SYMBOLS[0];
+  g.save();
+  g.translate(cx, cy);
+  g.fillStyle = sym.color;
+  g.strokeStyle = sym.color;
+  g.lineWidth = Math.max(1.4, s * 0.07);
+  g.lineJoin = 'round';
+  g.lineCap = 'round';
+  switch (id){
+    case 'cherry': {                       // 两颗樱桃 + 绿色果梗
+      g.beginPath(); g.arc(-s*0.21, s*0.15, s*0.19, 0, Math.PI*2); g.fill();
+      g.beginPath(); g.arc( s*0.21, s*0.15, s*0.19, 0, Math.PI*2); g.fill();
+      g.strokeStyle = '#63c47a';
+      g.beginPath();
+      g.moveTo(-s*0.20, s*0.01); g.quadraticCurveTo(-s*0.08, -s*0.38, s*0.05, -s*0.32);
+      g.moveTo( s*0.21, s*0.01); g.quadraticCurveTo( s*0.12, -s*0.38, s*0.05, -s*0.32);
+      g.stroke();
+      break;
+    }
+    case 'star': {                         // 五角星
+      starPath(g, 0, 0, s*0.40, s*0.18, 5); g.fill();
+      break;
+    }
+    case 'clover': {                       // 四叶草：四片圆叶 + 中心高光
+      const r = s * 0.17;
+      for (let i = 0; i < 4; i++){
+        const a = -Math.PI/2 + i * Math.PI/2;
+        g.beginPath(); g.arc(Math.cos(a)*r, Math.sin(a)*r, r*0.92, 0, Math.PI*2); g.fill();
+      }
+      g.fillStyle = 'rgba(255,255,255,.55)';
+      g.beginPath(); g.arc(0, 0, r*0.32, 0, Math.PI*2); g.fill();
+      break;
+    }
+    case 'bell': {                         // 铃铛：钟身 + 底座 + 铃舌
+      g.beginPath();
+      g.moveTo(-s*0.30, s*0.20);
+      g.quadraticCurveTo(-s*0.26, -s*0.28, 0, -s*0.30);
+      g.quadraticCurveTo( s*0.26, -s*0.28, s*0.30, s*0.20);
+      g.closePath(); g.fill();
+      g.fillRect(-s*0.34, s*0.18, s*0.68, s*0.09);
+      g.beginPath(); g.arc(0, s*0.34, s*0.09, 0, Math.PI*2); g.fill();
+      break;
+    }
+    case 'diamond': {                      // 钻石：菱形 + 内部切面高光
+      g.beginPath();
+      g.moveTo(0, -s*0.36); g.lineTo(s*0.34, -s*0.06);
+      g.lineTo(0,  s*0.36); g.lineTo(-s*0.34, -s*0.06);
+      g.closePath(); g.fill();
+      g.strokeStyle = 'rgba(255,255,255,.65)'; g.lineWidth = Math.max(1, s*0.035);
+      g.beginPath();
+      g.moveTo(-s*0.34, -s*0.06); g.lineTo(s*0.34, -s*0.06);
+      g.moveTo(0, -s*0.36); g.lineTo(-s*0.34, -s*0.06); g.lineTo(0, s*0.36);
+      g.stroke();
+      break;
+    }
+    case 'seven': {                        // 幸运 7：使用系统字体，不加载外部字体
+      g.font = 'bold ' + Math.round(s*0.74) + 'px Georgia, serif';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText('7', 0, s*0.03);
+      break;
+    }
+  }
+  g.restore();
+}
+
+/* ============ 2. 极简 WebAudio 音效（不加载任何音频文件，默认关闭） ============ */
+const Sound = {
+  on: false, ac: null,
+  ensure(){
+    if (!this.ac){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) { try { this.ac = new AC(); } catch (e) { /* 忽略：不支持音频的环境 */ } }
+    }
+    if (this.ac && this.ac.state === 'suspended') this.ac.resume();
+    return this.ac;
+  },
+  tone(freq, dur, type, vol){
+    if (!this.on) return;
+    const ac = this.ensure(); if (!ac) return;
+    try {
+      const o = ac.createOscillator(), gain = ac.createGain();
+      o.type = type || 'sine';
+      o.frequency.value = freq;
+      gain.gain.setValueAtTime(vol || 0.05, ac.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + dur);
+      o.connect(gain); gain.connect(ac.destination);
+      o.start(); o.stop(ac.currentTime + dur);
+    } catch (e) { /* 音频失败不影响游戏 */ }
+  },
+  hit(){ this.tone(430 + Math.random()*170, 0.07, 'triangle', 0.045); },
+  paddle(){ this.tone(240, 0.06, 'sine', 0.04); },
+  spin(){ this.tone(520, 0.10, 'square', 0.03); },
+  win(){ [523, 659, 784].forEach((f, i) => setTimeout(() => this.tone(f, 0.14, 'triangle', 0.05), i * 90)); },
+  lose(){ this.tone(160, 0.30, 'sawtooth', 0.04); }
+};
+
+/* ============ 3. 游戏状态与数据 ============ */
+const STATE = {
+  MENU:'menu', READY:'ready', PLAYING:'playing', SPIN:'spin',
+  PAUSED:'paused', CLEAR:'clear', OVER:'over'
+};
+let state = STATE.MENU;
+
+const BEST_KEY = 'luckyLoopReelBreaker.best';
+const loadBest = () => { try { return Number(localStorage.getItem(BEST_KEY)) || 0; } catch (e) { return 0; } };
+const saveBest = (v) => { try { localStorage.setItem(BEST_KEY, String(v)); } catch (e) { /* 隐私模式忽略 */ } };
+
+let score = 0, best = loadBest(), lives = 3, level = 1, combo = 0;
+let spinCharge = 0;                 // 已敲碎砖块数，满 8 触发 FREE SPIN
+const SPIN_NEED = 8;
+
+const COLS = 6, ROWS = 6, GAP = 8, MARGIN = 26, BRICK_H = 36, BRICK_TOP = 138;
+const BRICK_W = (W - MARGIN*2 - GAP*(COLS-1)) / COLS;
+
+let bricks = [];
+let paddle = { x: W/2, y: H - 58, w: 112, h: 16, baseW: 112 };
+let ball   = { x: W/2, y: 0, vx: 0, vy: 0, r: 9, trail: [] };
+const keys = { left:false, right:false };
+let pointerX = null;                // 鼠标/触摸映射后的目标 X（逻辑坐标）
+let particles = [], floats = [], spin = null;
+let shake = 0, bgPhase = 0, tick = 0, lastTime = 0, clearTimer = 0;
+let pausedFrom = STATE.PLAYING;
+let lastActionAt = 0, lastTouchAt = 0;
+
+const ballSpeed = () => Math.min(9.2, 5.1 + (level - 1) * 0.38);
+
+/** 按关卡生成砖块：越靠上分数越高的符号越多，保证布局略有随机但整体可控 */
+function buildLevel(lv){
+  bricks = [];
+  for (let r = 0; r < ROWS; r++){
+    for (let c = 0; c < COLS; c++){
+      const ratio = r / (ROWS - 1);                       // 0 = 顶层，1 = 底层
+      // 顶层更容易出现 7 / 钻石；底层多为樱桃 / 星星
+      let idx = Math.round((1 - ratio) * (SYMBOLS.length - 1) + rand(-1.4, 1.4));
+      idx = clamp(idx, 0, SYMBOLS.length - 1);
+      bricks.push({
+        x: MARGIN + c * (BRICK_W + GAP),
+        y: BRICK_TOP + r * (BRICK_H + GAP),
+        w: BRICK_W, h: BRICK_H,
+        sym: SYMBOLS[idx], alive: true, flash: 0
+      });
+    }
+  }
+}
+
+/* ============ 4. 粒子、漂浮文字与读屏播报 ============ */
+function announce(msg){ $('live').textContent = msg; }
+
+function burst(x, y, color, n){
+  if (reduceMotion) return;
+  n = n || 12;
+  for (let i = 0; i < n; i++){
+    const a = rand(0, Math.PI*2), sp = rand(1.2, 4.8);
+    particles.push({
+      x, y, vx: Math.cos(a)*sp, vy: Math.sin(a)*sp - 1,
+      life: 1, color, size: rand(2, 5)
+    });
+  }
+}
+function updateParticles(dt){
+  for (let i = particles.length - 1; i >= 0; i--){
+    const p = particles[i];
+    p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 0.16*dt; p.vx *= 0.99;
+    p.life -= 0.024*dt;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+function addFloat(x, y, text, color, life){
+  floats.push({ x, y, text, color: color || '#e9c46a', life: life || 55, max: life || 55 });
+}
+function updateFloats(dt){
+  for (let i = floats.length - 1; i >= 0; i--){
+    const f = floats[i];
+    f.y -= 0.7*dt; f.life -= dt;
+    if (f.life <= 0) floats.splice(i, 1);
+  }
+}
+
+/* ============ 5. 覆盖层（开始 / 暂停 / 结束） ============ */
+const overlay = $('overlay');
+function hideOverlay(){ overlay.hidden = true; }
+function showOverlay(html){
+  overlay.innerHTML = '<div class="card">' + html + '</div>';
+  overlay.hidden = false;
+}
+
+function menuScreen(){
+  state = STATE.MENU;
+  buildLevel(1);
+  showOverlay(
+    '<div class="kicker">Free play-money arcade</div>' +
+    '<h2>REEL BREAKER</h2>' +
+    '<p>用挡板把球弹向老虎机符号砖块。敲碎 <b>8 块</b> 触发一次 <b>免费旋转</b>，' +
+    '三个相同符号直接中大奖。掉球扣命，3 命用尽即结束。</p>' +
+    '<div class="symbols">' +
+      SYMBOLS.map(s => '<span class="chip" style="--c:' + s.color + '">' + s.name + ' ' + s.score + '</span>').join('') +
+    '</div>' +
+    '<div class="btn-row"><button class="btn primary" data-act="start" type="button">开始游戏</button></div>' +
+    '<p class="fineprint">PC：← → / A D 移动挡板，空格发球，P 暂停<br>移动端：滑动挡板，点击发球</p>'
+  );
+  updateHud();
+}
+
+function pauseScreen(){
+  showOverlay(
+    '<div class="kicker">Paused</div><h2>已暂停</h2>' +
+    '<p>按 <b>P / Esc</b> 或点击下方按钮继续。</p>' +
+    '<div class="btn-row">' +
+      '<button class="btn primary" data-act="resume" type="button">继续游戏</button>' +
+      '<button class="btn ghost" data-act="restart" type="button">重新开始</button>' +
+    '</div>'
+  );
+}
+
+function gameOver(){
+  state = STATE.OVER;
+  if (score > best){ best = score; saveBest(best); }
+  Sound.lose();
+  showOverlay(
+    '<div class="kicker">Game over</div><h2>本局结束</h2>' +
+    '<p>得分 <b style="font-size:22px">' + score + '</b>　·　最高分 <b>' + best + '</b>　·　到达第 <b>' + level + '</b> 关</p>' +
+    '<div class="btn-row"><button class="btn primary" data-act="restart" type="button">再来一局</button></div>' +
+    '<p class="fineprint">娱乐用途 · 虚拟币 · 无真实货币或奖品</p>'
+  );
+  announce('游戏结束，得分 ' + score + '，最高分 ' + best);
+  updateHud();
+  if (typeof window.__onGameState === 'function'){
+    try { window.__onGameState('over'); } catch (e) { /* 忽略 */ }
+  }
+}
+
+/* 覆盖层按钮使用事件委托，避免重复绑定 */
+overlay.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  Sound.ensure();
+  const act = btn.getAttribute('data-act');
+  if (act === 'start' || act === 'restart') startGame();
+  else if (act === 'resume') togglePause();
+});
+
+function updateHud(){
+  $('sScore').textContent = score;
+  $('sBest').textContent  = Math.max(best, score);
+  $('sLevel').textContent = level;
+  $('sLives').textContent = lives > 0 ? '♥'.repeat(Math.min(lives, 5)) : '—';
+}
+
+/* ============ 6. 流程控制 ============ */
+function startGame(){
+  score = 0; lives = 3; level = 1; combo = 0; spinCharge = 0;
+  paddle.baseW = 112; paddle.w = 112; paddle.x = W/2;
+  particles = []; floats = []; spin = null; shake = 0;
+  pointerX = null;
+  startLevel();
+  updateHud();
+  if (typeof window.__onGameState === 'function'){
+    try { window.__onGameState('playing'); } catch (e) { /* 忽略 */ }
+  }
+}
+
+function startLevel(){
+  buildLevel(level);
+  resetBall();
+  state = STATE.READY;
+  hideOverlay();
+  announce('第 ' + level + ' 关，按空格、回车或点击发球');
+}
+
+function resetBall(){
+  ball.vx = 0; ball.vy = 0; ball.r = 9;
+  ball.x = paddle.x; ball.y = paddle.y - ball.r - 4;
+  ball.trail.length = 0;
+}
+
+function launchBall(){
+  if (state !== STATE.READY) return;
+  state = STATE.PLAYING;
+  const sp = ballSpeed();
+  ball.vx = rand(-0.5, 0.5) * sp;
+  ball.vy = -Math.sqrt(Math.max(1, sp*sp - ball.vx*ball.vx));
+  ball.trail.length = 0;
+  hideOverlay();
+  announce('发球');
+}
+
+/** 主操作：菜单/结束 → 开局；待发 → 发球；暂停 → 继续 */
+function primaryAction(){
+  Sound.ensure();                                   // 必须在用户手势中解锁 AudioContext
+  const now = Date.now();
+  if (now - lastActionAt < 220) return;             // 简单防抖，避免触摸与合成鼠标事件双触发
+  lastActionAt = now;
+  if (state === STATE.MENU || state === STATE.OVER) { startGame(); return; }
+  if (state === STATE.READY) { launchBall(); return; }
+  if (state === STATE.PAUSED) { togglePause(); return; }
+}
+
+function togglePause(){
+  if (state === STATE.PAUSED){
+    state = pausedFrom;
+    hideOverlay();
+    announce('游戏继续');
+  } else if (state === STATE.PLAYING || state === STATE.READY || state === STATE.SPIN){
+    pausedFrom = state;
+    state = STATE.PAUSED;
+    pauseScreen();
+    announce('游戏已暂停');
+  }
+}
+
+function onLevelClear(){
+  state = STATE.CLEAR;
+  clearTimer = 95;                                  // 约 1.5 秒（按 60fps 计）
+  const bonus = 250 * level;
+  score += bonus;
+  addFloat(W/2, H/2 - 20, 'CLEAR! +' + bonus, '#e9c46a', 100);
+  Sound.win();
+  announce('第 ' + level + ' 关通关，奖励 ' + bonus + ' 分');
+  updateHud();
+}
+
+function onLifeLost(){
+  lives--; combo = 0; spinCharge = 0;
+  Sound.lose();
+  burst(ball.x, H - 18, '#e0483f', 16);
+  ball.trail.length = 0;
+  if (lives <= 0) { gameOver(); }
+  else { state = STATE.READY; resetBall(); announce('掉球，剩余 ' + lives + ' 命'); }
+  updateHud();
+}
+
+/* ============ 7. 免费旋转（老虎机转轮） ============ */
+function startSpin(){
+  state = STATE.SPIN;
+  spin = {
+    reels: [0, 0, 0],
+    vel: [rand(14, 20), rand(14, 20), rand(14, 20)],
+    stopped: [false, false, false],
+    t: 0
+  };
+  Sound.spin();
+  announce('免费旋转开始');
+}
+
+function updateSpin(dt){
+  const s = spin; if (!s) return;
+  s.t += dt;
+  for (let i = 0; i < 3; i++){
+    if (s.stopped[i]) continue;
+    s.reels[i] += s.vel[i] * dt;
+    s.vel[i] = Math.max(4, s.vel[i] - 0.12 * dt);
+    // 三个转轮依次停下
+    if (s.t > 42 + i * 16){
+      s.stopped[i] = true;
+      s.reels[i] = Math.round(s.reels[i]) % SYMBOLS.length;
+    }
+  }
+  if (!s.stopped.every(Boolean)) return;
+
+  // 判奖：三个相同 = 大奖；两个相同 = 中等；否则 = 安慰奖
+  const ids = s.reels.map(i => SYMBOLS[i].id);
+  const same = ids[0] === ids[1] && ids[1] === ids[2];
+  const pair = !same && (ids[0] === ids[1] || ids[1] === ids[2] || ids[0] === ids[2]);
+  let bonus = 60, extraLife = 0, label = '幸运奖励 +60';
+  if (same)      { bonus = 500; extraLife = 1; label = 'JACKPOT +500 · +1 命'; }
+  else if (pair) { bonus = 180; label = '两枚相同 +180'; }
+
+  score += bonus;
+  lives = Math.min(5, lives + extraLife);
+  paddle.baseW = Math.min(170, paddle.baseW + 8);   // 每次旋转略微加宽挡板
+  paddle.w = paddle.baseW;
+  addFloat(W/2, H/2 + 130, label, '#e9c46a', 100);
+  Sound.win();
+  announce('免费旋转结果：' + label);
+  updateHud();
+
+  /* Hybrid 桥接钩子：独立运行时该回调不存在；内联 NativeBridge 后由胶水层注入，
+     用于把免费旋转结果上报原生。上报失败绝不影响游戏本体。 */
+  if (typeof window.__onSpinResult === 'function'){
+    try {
+      window.__onSpinResult({
+        spinId: 'spin-' + Date.now(),
+        reels: ids.slice(),
+        win: bonus, bet: 0,
+        currency: 'CREDITS', playMoney: true
+      });
+    } catch (e) { /* 忽略桥接层异常 */ }
+  }
+
+  spin = null;
+  state = STATE.PLAYING;
+  if (bricks.every(b => !b.alive)) onLevelClear();
+}
+
+/* ============ 8. 碰撞与更新 ============ */
+function circleHitsRect(c, r){
+  const nx = clamp(c.x, r.x, r.x + r.w);
+  const ny = clamp(c.y, r.y, r.y + r.h);
+  const dx = c.x - nx, dy = c.y - ny;
+  return dx*dx + dy*dy <= c.r*c.r;
+}
+
+function onBrickBroken(b){
+  combo++;
+  const mult = 1 + Math.min(combo, 5) * 0.1;        // 连击最高 +50%
+  const gain = Math.round(b.sym.score * mult);
+  score += gain;
+  addFloat(b.x + b.w/2, b.y, '+' + gain, b.sym.color);
+  burst(b.x + b.w/2, b.y + b.h/2, b.sym.color, 12);
+  shake = reduceMotion ? 0 : 5;
+  Sound.hit();
+  spinCharge++;
+
+  // 优先级：先判断是否触发免费旋转，再判断是否通关
+  if (spinCharge >= SPIN_NEED){ spinCharge = 0; startSpin(); updateHud(); return; }
+  updateHud();
+  if (bricks.every(x => !x.alive)) onLevelClear();
+}
+
+function stepBall(dt){
+  ball.x += ball.vx * dt;
+  ball.y += ball.vy * dt;
+
+  // 球体拖尾（降低动效偏好时关闭）
+  if (!reduceMotion){
+    ball.trail.push({ x: ball.x, y: ball.y });
+    if (ball.trail.length > 9) ball.trail.shift();
+  }
+
+  // 左右墙与上边界
+  if (ball.x - ball.r < 6){ ball.x = 6 + ball.r; ball.vx = Math.abs(ball.vx); }
+  if (ball.x + ball.r > W - 6){ ball.x = W - 6 - ball.r; ball.vx = -Math.abs(ball.vx); }
+  if (ball.y - ball.r < TOP){ ball.y = TOP + ball.r; ball.vy = Math.abs(ball.vy); }
+
+  // 挡板：按击中位置决定出射角（最大约 60°），并固定速度防止漂移
+  if (ball.vy > 0 &&
+      ball.y + ball.r >= paddle.y && ball.y - ball.r <= paddle.y + paddle.h &&
+      ball.x >= paddle.x - paddle.w/2 - ball.r && ball.x <= paddle.x + paddle.w/2 + ball.r){
+    ball.y = paddle.y - ball.r;
+    const off = clamp((ball.x - paddle.x) / (paddle.w/2), -1, 1);
+    const sp = ballSpeed(), ang = off * 1.05;
+    ball.vx = Math.sin(ang) * sp;
+    ball.vy = -Math.cos(ang) * sp;
+    combo = 0;                                    // 接球后重置连击
+    Sound.paddle();
+  }
+
+  // 砖块：一帧最多处理一次命中，避免过度反弹
+  for (const b of bricks){
+    if (!b.alive) continue;
+    if (!circleHitsRect(ball, b)) continue;
+    b.alive = false;
+    const overlapX = Math.min(ball.x + ball.r - b.x, (b.x + b.w) - (ball.x - ball.r));
+    const overlapY = Math.min(ball.y + ball.r - b.y, (b.y + b.h) - (ball.y - ball.r));
+    if (overlapX < overlapY) ball.vx = -ball.vx; else ball.vy = -ball.vy;
+    onBrickBroken(b);
+    break;
+  }
+
+  // 掉出底部
+  if (ball.y - ball.r > H + 20) onLifeLost();
+}
+
+function update(dt){
+  if (!reduceMotion) bgPhase += 0.004 * dt;
+
+  // 菜单、暂停、结束：只保留背景与粒子，物理停止
+  if (state === STATE.MENU || state === STATE.PAUSED || state === STATE.OVER){
+    updateParticles(dt); updateFloats(dt);
+    return;
+  }
+  if (state === STATE.SPIN){ updateSpin(dt); updateParticles(dt); updateFloats(dt); return; }
+  if (state === STATE.CLEAR){
+    clearTimer -= dt; updateParticles(dt); updateFloats(dt);
+    if (clearTimer <= 0){ level++; startLevel(); }
+    return;
+  }
+
+  // 挡板：键盘连续移动 + 指针平滑跟随
+  if (keys.left)  paddle.x -= 7.6 * dt;
+  if (keys.right) paddle.x += 7.6 * dt;
+  if (pointerX !== null) paddle.x += (pointerX - paddle.x) * Math.min(1, 0.35 * dt);
+  paddle.x = clamp(paddle.x, paddle.w/2 + 8, W - paddle.w/2 - 8);
+
+  if (state === STATE.READY){
+    ball.x = paddle.x;
+    ball.y = paddle.y - ball.r - 4;
+    return;
+  }
+  if (state !== STATE.PLAYING) return;
+
+  // 分步移动，减少高速穿透
+  const steps = Math.max(1, Math.ceil(Math.hypot(ball.vx, ball.vy) * dt / 6));
+  for (let i = 0; i < steps && state === STATE.PLAYING; i++) stepBall(dt / steps);
+
+  updateParticles(dt);
+  updateFloats(dt);
+  if (shake > 0) shake = Math.max(0, shake - 0.6 * dt);
+}
+
+/* ============ 9. 渲染 ============ */
+function drawBackground(){
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#0d0c14'); g.addColorStop(0.55, '#09080e'); g.addColorStop(1, '#050509');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+  // 缓慢流动的网格线
+  ctx.save();
+  ctx.strokeStyle = 'rgba(233,196,106,.045)';
+  ctx.lineWidth = 1;
+  const off = (bgPhase * 26) % 40;
+  for (let y = TOP + off; y < H; y += 40){ ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  for (let x = 0; x < W; x += 40){ ctx.beginPath(); ctx.moveTo(x, TOP); ctx.lineTo(x, H); ctx.stroke(); }
+  ctx.restore();
+
+  // 顶部/底部光晕
+  const glow = ctx.createRadialGradient(W/2, TOP, 20, W/2, TOP, 420);
+  glow.addColorStop(0, 'rgba(233,196,106,.10)'); glow.addColorStop(1, 'rgba(233,196,106,0)');
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, W, 360);
+}
+
+function drawTopBar(){
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,.025)';
+  ctx.fillRect(0, 0, W, TOP);
+  ctx.strokeStyle = 'rgba(233,196,106,.18)';
+  ctx.beginPath(); ctx.moveTo(0, TOP); ctx.lineTo(W, TOP); ctx.stroke();
+
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#9a94a6';
+  ctx.font = '11px system-ui, sans-serif';
+  ctx.fillText('LV.' + level, 20, 26);
+  ctx.fillText(combo > 1 ? ('COMBO ×' + combo) : 'PLAY MONEY ONLY', 20, 48);
+
+  // FREE SPIN 进度条：8 格
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#e9c46a';
+  ctx.fillText('FREE SPIN', W - 20, 26);
+  const cellW = 22, cellH = 9, gap = 4, total = SPIN_NEED * (cellW + gap) - gap;
+  const x0 = W - 20 - total;
+  for (let i = 0; i < SPIN_NEED; i++){
+    roundRect(ctx, x0 + i*(cellW+gap), 42, cellW, cellH, 3);
+    ctx.fillStyle = i < spinCharge ? '#e9c46a' : 'rgba(255,255,255,.10)';
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawBricks(){
+  for (const b of bricks){
+    if (!b.alive) continue;
+    roundRect(ctx, b.x, b.y, b.w, b.h, 9);
+    const g = ctx.createLinearGradient(0, b.y, 0, b.y + b.h);
+    g.addColorStop(0, 'rgba(255,255,255,.10)');
+    g.addColorStop(1, 'rgba(255,255,255,.025)');
+    ctx.fillStyle = g; ctx.fill();
+    ctx.strokeStyle = b.sym.color + '88'; ctx.lineWidth = 1.5; ctx.stroke();
+    // 符号与分值
+    drawSymbol(ctx, b.sym.id, b.x + b.w/2 - 20, b.y + b.h/2, 25);
+    ctx.fillStyle = 'rgba(244,239,227,.75)';
+    ctx.font = '600 12px system-ui, sans-serif';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(String(b.sym.score), b.x + b.w/2 - 2, b.y + b.h/2 + 1);
+  }
+}
+
+function drawPaddle(){
+  const x = paddle.x - paddle.w/2, y = paddle.y;
+  ctx.save();
+  ctx.shadowColor = 'rgba(233,196,106,.55)'; ctx.shadowBlur = 18;
+  roundRect(ctx, x, y, paddle.w, paddle.h, 8);
+  const g = ctx.createLinearGradient(0, y, 0, y + paddle.h);
+  g.addColorStop(0, '#f6dc95'); g.addColorStop(1, '#b98a34');
+  ctx.fillStyle = g; ctx.fill();
+  ctx.restore();
+  // 中心握把
+  ctx.fillStyle = 'rgba(26,20,8,.35)';
+  roundRect(ctx, paddle.x - 12, y + 4, 24, paddle.h - 8, 4);
+  ctx.fill();
+}
+
+function drawBall(){
+  ctx.save();
+  // 拖尾
+  for (let i = 0; i < ball.trail.length; i++){
+    const t = ball.trail[i], a = (i + 1) / ball.trail.length;
+    ctx.fillStyle = 'rgba(244,239,227,' + (a * 0.16).toFixed(3) + ')';
+    ctx.beginPath(); ctx.arc(t.x, t.y, ball.r * a * 0.9, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.shadowColor = 'rgba(255,255,255,.85)'; ctx.shadowBlur = 16;
+  const g = ctx.createRadialGradient(ball.x - 3, ball.y - 3, 1, ball.x, ball.y, ball.r);
+  g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#d9cfa8');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawParticles(){
+  for (const p of particles){
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawFloats(){
+  ctx.save();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (const f of floats){
+    ctx.globalAlpha = Math.max(0, Math.min(1, f.life / 24));
+    ctx.fillStyle = f.color;
+    ctx.font = 'bold 20px Georgia, serif';
+    ctx.fillText(f.text, f.x, f.y);
+  }
+  ctx.restore();
+}
+
+function drawSpin(){
+  const s = spin; if (!s) return;
+  ctx.save();
+  ctx.fillStyle = 'rgba(7,7,11,.86)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#e9c46a'; ctx.font = 'bold 34px Georgia, serif';
+  ctx.fillText('FREE SPIN', W/2, H/2 - 148);
+  ctx.fillStyle = '#9a94a6'; ctx.font = '14px system-ui, sans-serif';
+  ctx.fillText('敲碎 8 块砖触发 · 三个相同符号中大奖', W/2, H/2 - 116);
+
+  const rw = 118, rh = 150, gap = 18;
+  const x0 = (W - (rw*3 + gap*2)) / 2, y0 = H/2 - 70;
+  for (let i = 0; i < 3; i++){
+    const x = x0 + i*(rw + gap);
+    roundRect(ctx, x, y0, rw, rh, 16);
+    ctx.fillStyle = '#14131b'; ctx.fill();
+    ctx.strokeStyle = 'rgba(233,196,106,.55)'; ctx.lineWidth = 2; ctx.stroke();
+
+    // 裁剪出转轮可视区，画当前符号与下一个符号形成滚动错觉
+    ctx.save();
+    roundRect(ctx, x + 4, y0 + 4, rw - 8, rh - 8, 12); ctx.clip();
+    const v = s.reels[i];
+    const idx = ((Math.floor(v) % SYMBOLS.length) + SYMBOLS.length) % SYMBOLS.length;
+    const frac = v - Math.floor(v);
+    const cy = y0 + rh/2;
+    drawSymbol(ctx, SYMBOLS[idx].id, x + rw/2, cy - frac*rh, 60);
+    drawSymbol(ctx, SYMBOLS[(idx + 1) % SYMBOLS.length].id, x + rw/2, cy - frac*rh + rh, 60);
+    ctx.restore();
+
+    // 上下渐隐遮罩，强化“转轮”质感
+    const grad = ctx.createLinearGradient(0, y0, 0, y0 + rh);
+    grad.addColorStop(0,    'rgba(20,19,27,.96)');
+    grad.addColorStop(0.28, 'rgba(20,19,27,0)');
+    grad.addColorStop(0.72, 'rgba(20,19,27,0)');
+    grad.addColorStop(1,    'rgba(20,19,27,.96)');
+    ctx.fillStyle = grad; ctx.fillRect(x + 4, y0 + 4, rw - 8, rh - 8);
+  }
+  ctx.restore();
+}
+
+/** 菜单装饰：三个缓慢滚动的转轮，纯视觉 */
+function drawMenuDecor(){
+  const rw = 78, rh = 96, gap = 12;
+  const x0 = (W - (rw*3 + gap*2)) / 2, y0 = H - 190;
+  ctx.save();
+  for (let i = 0; i < 3; i++){
+    const x = x0 + i*(rw + gap);
+    roundRect(ctx, x, y0, rw, rh, 12);
+    ctx.fillStyle = 'rgba(20,19,27,.75)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(233,196,106,.28)'; ctx.lineWidth = 1.5; ctx.stroke();
+    const idx = Math.floor(tick * (0.012 + i*0.004) + i) % SYMBOLS.length;
+    drawSymbol(ctx, SYMBOLS[idx].id, x + rw/2, y0 + rh/2, 42);
+  }
+  ctx.restore();
+}
+
+function render(){
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  if (shake > 0 && !reduceMotion) ctx.translate(rand(-shake, shake), rand(-shake, shake));
+  drawBackground();
+  drawTopBar();
+  drawBricks();
+  drawParticles();
+  if (state !== STATE.MENU) drawPaddle();
+  drawFloats();
+  if (state !== STATE.MENU && state !== STATE.OVER) drawBall();
+  if (state === STATE.MENU) drawMenuDecor();
+  if (state === STATE.SPIN) drawSpin();
+  ctx.restore();
+}
+
+/* ============ 10. 主循环（requestAnimationFrame，按 60fps 归一化 dt） ============ */
+function frame(ts){
+  const dt = lastTime ? Math.min((ts - lastTime) / 16.667, 2.5) : 1;
+  lastTime = ts;
+  tick += dt;
+  update(dt);
+  render();
+  requestAnimationFrame(frame);
+}
+
+/* ============ 11. 输入：PC 键盘 keydown/keyup ============ */
+window.addEventListener('keydown', (e) => {
+  const k = e.key.toLowerCase();
+  if (['arrowleft','arrowright',' ','a','d','p','escape','enter'].includes(k)) e.preventDefault();
+  if (k === 'arrowleft'  || k === 'a') keys.left = true;
+  if (k === 'arrowright' || k === 'd') keys.right = true;
+  if (k === ' ') primaryAction();
+  if (k === 'enter' && (state === STATE.MENU || state === STATE.OVER || state === STATE.READY)) primaryAction();
+  if (k === 'p' || k === 'escape') togglePause();
+});
+window.addEventListener('keyup', (e) => {
+  const k = e.key.toLowerCase();
+  if (k === 'arrowleft'  || k === 'a') keys.left = false;
+  if (k === 'arrowright' || k === 'd') keys.right = false;
+});
+
+/* ============ 12. 输入：移动端 touch 事件 ============
+ * touchstart 里 preventDefault 可阻止后续合成鼠标事件，避免一次触摸触发两次动作。
+ */
+const toLogicX = (clientX) => {
+  const r = canvas.getBoundingClientRect();
+  return clamp((clientX - r.left) / r.width * W, 0, W);
+};
+
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  lastTouchAt = Date.now();
+  Sound.ensure();
+  if (e.touches.length) pointerX = toLogicX(e.touches[0].clientX);
+  primaryAction();
+}, { passive:false });
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (e.touches.length) pointerX = toLogicX(e.touches[0].clientX);
+}, { passive:false });
+
+canvas.addEventListener('touchend', (e) => { e.preventDefault(); }, { passive:false });
+
+/* ============ 13. 输入：PC 鼠标（带触摸去重守卫） ============ */
+canvas.addEventListener('mousemove', (e) => {
+  if (Date.now() - lastTouchAt < 700) return;
+  pointerX = toLogicX(e.clientX);
+});
+canvas.addEventListener('mousedown', (e) => {
+  if (Date.now() - lastTouchAt < 700) return;
+  e.preventDefault();
+  pointerX = toLogicX(e.clientX);
+  primaryAction();
+});
+
+/* ============ 14. 控制按钮与生命周期 ============ */
+$('btnStart').addEventListener('click', primaryAction);
+$('btnPause').addEventListener('click', togglePause);
+$('btnRestart').addEventListener('click', () => { Sound.ensure(); startGame(); });
+$('btnSound').addEventListener('click', (e) => {
+  Sound.on = !Sound.on;
+  if (Sound.on) { Sound.ensure(); Sound.hit(); }
+  e.currentTarget.textContent = '音效：' + (Sound.on ? '开' : '关');
+  e.currentTarget.setAttribute('aria-pressed', String(Sound.on));
+});
+
+// 页面切到后台自动暂停，避免回来时球已经掉光
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && (state === STATE.PLAYING || state === STATE.READY || state === STATE.SPIN)) togglePause();
+});
+// 窗口失焦时清空按键状态，防止“粘键”
+window.addEventListener('blur', () => { keys.left = false; keys.right = false; });
+
+/* ============ 15. 启动 ============ */
+menuScreen();
+requestAnimationFrame(frame);
+</script>
+
+<!-- Hybrid build: NativeBridge.js + hybrid-glue.js are inlined. Do not edit by hand; see h5/build-hybrid.ps1 -->
+<script>
+/* =============================================================================
+ * NativeBridge.js — H5 老虎机游戏的跨平台 WebView ↔ 原生双向通信核心
+ * -----------------------------------------------------------------------------
+ * 支持通道（自动探测，也可 configure() 显式指定）：
+ *   1. iOS  WKWebView : window.webkit.messageHandlers.<name>.postMessage(object)
+ *   2. Android        : window.<Interface>.<method>(jsonString)   (@JavascriptInterface)
+ *   3. React Native   : window.ReactNativeWebView.postMessage(jsonString)
+ *   4. 纯浏览器 / 调试 : 本地 mock，不会发网络请求，便于本地开发与单测
+ *
+ * 双向通信模型：
+ *   JS → Native : call(method, params) 返回 Promise，带自增 id 与超时。
+ *   Native → JS : 原生调用 NativeBridge._receive(jsonString|object)，
+ *                 可回复响应(type:'res')、推送事件(type:'evt')、心跳(type:'ping')。
+ *
+ * 运行环境基线：需支持 Promise / Map / Set / class
+ *   （iOS 10+、Android 5.1+ 系统 WebView；更老环境请注入 polyfill）。
+ *
+ * 安全约定：
+ *   - 所有来自原生的报文都先 JSON 解析并做结构校验，任何异常都不会抛回原生层。
+ *   - 支持方法白名单，防止页面被注入后调用敏感原生能力。
+ *   - 业务层只传虚拟币（play-money / CREDITS），绝不传真实货币金额或支付凭证。
+ *   - 本模块不持有任何密钥、token 或用户隐私数据。
+ *
+ * 用法（将本文件通过 script 标签引入页面后，以下示例即可直接调用）：
+ *     NativeBridge.configure({ debug: true });
+ *     NativeBridge.ready().then(() => NativeBridge.Slots.requestSpin({ bet: 5 }));
+ *     NativeBridge.on('wallet.changed', d => console.log(d));
+ * ============================================================================= */
+
+(function (root, factory) {
+  'use strict';
+  var api = factory(root);                    // 必须把宿主对象传给 factory
+  if (typeof module === 'object' && module && module.exports) {
+    module.exports = api;                       // CommonJS（便于单测 / 打包）
+  } else {
+    root.NativeBridge = api;                    // 浏览器全局：原生侧据此调用 _receive
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (root) {
+  // 注意：root 必须作为 factory 的形参传入。
+  // factory 定义在外层 IIFE 的实参位置，其词法作用域是全局，
+  // 无法直接捕获外层 IIFE 的形参；显式传参才能让 detect() 等内部函数拿到宿主对象。
+  'use strict';
+
+  /* ============ 1. 协议常量 ============ */
+  var PROTOCOL = 'lucky-loop/1';                // 协议版本，原生侧可据此做兼容
+  var VERSION  = '1.0.0';
+  var DEFAULT_TIMEOUT = 8000;                  // 单次 call 默认超时（毫秒）
+  var MAX_PENDING = 200;                        // 未完成请求上限，防内存泄漏
+
+  /** 业务事件名常量，避免各处手写字符串拼错 */
+  var EVENTS = {
+    READY:          'app.ready',                // 原生侧初始化完成
+    STATE:          'app.state',                // 前后台切换 active/background
+    PAUSE:          'game.pause',               // 原生要求游戏暂停
+    RESUME:         'game.resume',
+    WALLET_CHANGED: 'wallet.changed',           // 虚拟币余额变化
+    CONFIG_CHANGED: 'config.changed',           // 远程配置 / 玩法参数变化
+    SPIN_RESULT:    'game.spinResult',          // 原生下发的开奖结果（若由原生做 RNG）
+    BRIDGE_ERROR:   'bridge.error',             // 桥接层内部错误
+    BRIDGE_WARN:    'bridge.warn'
+  };
+
+  /* ============ 2. 可配置项 ============ */
+  var cfg = {
+    iosHandler:       'luckyLoopBridge',        // WKScriptMessageHandler 名称
+    androidInterface: 'LuckyLoopBridge',        // addJavascriptInterface 注入的对象名
+    androidMethod:    'postMessage',            // 该对象上 @JavascriptInterface 方法名
+    timeout:          DEFAULT_TIMEOUT,
+    whitelist:        null,                     // null = 不限制；传数组 = 允许的方法名列表
+    debug:            false
+  };
+
+  /* ============ 3. 内部状态 ============ */
+  var pending   = new Map();                    // id -> { resolve, reject, timer, method }
+  var listeners = new Map();                    // event -> Set<handler>
+  var seq       = 0;                            // 自增消息 id
+  var env       = null;                         // 探测结果缓存
+  var mockHandler = null;                       // 浏览器调试用的本地处理器
+  var helloed  = false;
+
+  /** 带前缀的调试日志，生产环境静默 */
+  function log(){
+    if (!cfg.debug || typeof console === 'undefined') return;
+    try { console.log.apply(console, ['[NativeBridge]'].concat(Array.prototype.slice.call(arguments))); } catch (e) {}
+  }
+  function warn(){
+    if (typeof console === 'undefined') return;
+    try { console.warn.apply(console, ['[NativeBridge]'].concat(Array.prototype.slice.call(arguments))); } catch (e) {}
+  }
+
+  /** 统一的桥接错误类型，便于业务侧 catch 后区分错误来源 */
+  function BridgeError(code, message, detail) {
+    this.name = 'BridgeError';
+    this.code = code || 'E_UNKNOWN';
+    this.message = message || 'NativeBridge error';
+    this.detail = detail || null;
+  }
+  BridgeError.prototype = Object.create(Error.prototype);
+  BridgeError.prototype.constructor = BridgeError;
+
+  /* ============ 4. 环境探测 ============
+   * 顺序很重要：RN WebView 也可能存在 webkit 对象，故优先识别 RN；
+   * 探测结果缓存，避免每次 call 都做反射。
+   */
+  function detect() {
+    if (env) return env;
+    var w = root;
+    var result = { platform: 'web', channel: 'mock', handler: null, method: null, protocol: PROTOCOL };
+
+    if (w.ReactNativeWebView && typeof w.ReactNativeWebView.postMessage === 'function') {
+      result.platform = 'react-native';
+      result.channel  = 'ReactNativeWebView.postMessage';
+      result.handler  = w.ReactNativeWebView;
+      result.method   = 'postMessage';
+    } else if (w.webkit && w.webkit.messageHandlers && w.webkit.messageHandlers[cfg.iosHandler]) {
+      result.platform = 'ios';
+      result.channel  = 'webkit.messageHandlers.' + cfg.iosHandler;
+      result.handler  = w.webkit.messageHandlers[cfg.iosHandler];
+      result.method   = 'postMessage';
+    } else if (w[cfg.androidInterface] && typeof w[cfg.androidInterface][cfg.androidMethod] === 'function') {
+      result.platform = 'android';
+      result.channel  = cfg.androidInterface + '.' + cfg.androidMethod;
+      result.handler  = w[cfg.androidInterface];
+      result.method   = cfg.androidMethod;
+    }
+    env = result;
+    log('detected', result.platform, result.channel);
+    return result;
+  }
+
+  /** 修改配置；会重置环境探测缓存，允许运行时切换通道（主要用于调试） */
+  function configure(options) {
+    if (!options || typeof options !== 'object') return getEnv();
+    Object.keys(options).forEach(function (k) {
+      if (Object.prototype.hasOwnProperty.call(cfg, k)) cfg[k] = options[k];
+    });
+    env = null;                                  // 配置变化后重新探测
+    return getEnv();
+  }
+
+  function getEnv() {
+    var d = detect();
+    return {
+      platform: d.platform,
+      channel:  d.channel,
+      protocol: PROTOCOL,
+      version:  VERSION,
+      isNative: d.platform !== 'web',
+      debug:    cfg.debug
+    };
+  }
+
+  /* ============ 5. 事件总线（Native → JS 的下行通道） ============ */
+  function on(event, fn) {
+    if (typeof event !== 'string' || typeof fn !== 'function') return function () {};
+    if (!listeners.has(event)) listeners.set(event, new Set());
+    listeners.get(event).add(fn);
+    // 返回取消订阅函数，业务侧可直接 off = NativeBridge.on(...)
+    return function () { off(event, fn); };
+  }
+
+  function once(event, fn) {
+    var wrap = function (data) { off(event, wrap); fn(data); };
+    return on(event, wrap);
+  }
+
+  function off(event, fn) {
+    var set = listeners.get(event);
+    if (!set) return;
+    if (typeof fn === 'function') set.delete(fn);
+    else set.clear();
+    if (set.size === 0) listeners.delete(event);
+  }
+
+  /** 触发事件；单个监听器抛错不影响其它监听器，也不会冒泡到原生层 */
+  function emit(event, data) {
+    [event, '*'].forEach(function (key) {
+      var set = listeners.get(key);
+      if (!set) return;
+      // 复制一份再遍历，允许监听器内部增删订阅
+      Array.from(set).forEach(function (fn) {
+        try { fn(data, event); }
+        catch (e) { warn('listener error on "' + event + '"', e); }
+      });
+    });
+  }
+
+  /* ============ 6. 报文构造与分发 ============ */
+  function nextId() {
+    seq += 1;
+    return 'js-' + Date.now().toString(36) + '-' + seq.toString(36);
+  }
+
+  /** 校验方法名：只允许字母开头的点/下划线/连字符命名，且可走白名单 */
+  function assertMethod(method) {
+    if (typeof method !== 'string' || !/^[A-Za-z][A-Za-z0-9_.-]{1,63}$/.test(method)) {
+      throw new BridgeError('E_METHOD', '非法的方法名: ' + String(method));
+    }
+    if (cfg.whitelist && cfg.whitelist.length && cfg.whitelist.indexOf(method) === -1) {
+      throw new BridgeError('E_FORBIDDEN', '方法不在白名单内: ' + method);
+    }
+  }
+
+  /** 校验参数可序列化，避免把 DOM / 循环引用对象丢给原生导致崩溃 */
+  function serializeParams(params) {
+    if (params === undefined || params === null) return {};
+    if (typeof params !== 'object') {
+      throw new BridgeError('E_PARAMS', 'params 必须是对象');
+    }
+    try { JSON.stringify(params); }
+    catch (e) { throw new BridgeError('E_PARAMS', 'params 无法序列化', e); }
+    return params;
+  }
+
+  /** 把报文发到实际通道；不同平台对参数类型要求不同 */
+  function dispatch(envelope) {
+    var d = detect();
+    var text = JSON.stringify(envelope);
+    try {
+      if (d.platform === 'ios') {
+        // WKWebView 支持直接传 NSDictionary，不必转成字符串
+        d.handler[d.method](envelope);
+      } else if (d.platform === 'android') {
+        // @JavascriptInterface 只接受基本类型，统一传 JSON 字符串
+        d.handler[d.method](text);
+      } else if (d.platform === 'react-native') {
+        d.handler[d.method](text);
+      } else {
+        // 纯浏览器：交给本地 mock，或立即回一个明确的 mock 响应
+        log('web mock ->', envelope.method);
+        if (typeof mockHandler === 'function') {
+          mockHandler(envelope, function (data, error) {
+            _receive({ v: PROTOCOL, type: 'res', id: envelope.id, ok: !error, data: data, error: error });
+          });
+        } else {
+          _receive({
+            v: PROTOCOL, type: 'res', id: envelope.id, ok: true,
+            data: { __mock: true, method: envelope.method, params: envelope.params }
+          });
+        }
+      }
+      return true;
+    } catch (e) {
+      warn('dispatch failed', e);
+      return false;
+    }
+  }
+
+  /* ============ 7. JS → Native：call() ============
+   * 返回 Promise；原生需在超时前调用 NativeBridge._receive 回 type:'res'。
+   */
+  function call(method, params, timeout) {
+    return new Promise(function (resolve, reject) {
+      var envelope;
+      try {
+        assertMethod(method);
+        envelope = {
+          v: PROTOCOL,
+          id: nextId(),
+          type: 'req',
+          method: method,
+          params: serializeParams(params),
+          ts: Date.now()
+        };
+      } catch (e) { reject(e); return; }
+
+      if (pending.size >= MAX_PENDING) {
+        reject(new BridgeError('E_BUSY', '未完成请求过多，请稍后重试'));
+        return;
+      }
+
+      var ms = (typeof timeout === 'number' && timeout > 0) ? timeout : cfg.timeout;
+      var timer = setTimeout(function () {
+        pending.delete(envelope.id);
+        log('timeout', envelope.method, envelope.id);
+        reject(new BridgeError('E_TIMEOUT', '原生响应超时: ' + method, envelope.id));
+      }, ms);
+
+      pending.set(envelope.id, { resolve: resolve, reject: reject, timer: timer, method: method });
+      log('call ->', method, envelope.id, envelope.params);
+
+      if (!dispatch(envelope)) {
+        clearTimeout(timer);
+        pending.delete(envelope.id);
+        reject(new BridgeError('E_CHANNEL', '通道不可用: ' + method));
+      }
+    });
+  }
+
+  /** 只发不等响应（日志埋点等场景） */
+  function notify(method, params) {
+    try {
+      assertMethod(method);
+      var envelope = {
+        v: PROTOCOL, id: nextId(), type: 'evt', event: 'js.notify',
+        data: { method: method, params: serializeParams(params) }, ts: Date.now()
+      };
+      dispatch(envelope);
+    } catch (e) { warn('notify failed', e); }
+  }
+
+  /* ============ 8. Native → JS：统一入口 _receive() ============
+   * 原生侧唯一需要调用的 JS 方法。接受 JSON 字符串或对象，永不抛异常。
+   *
+   * 响应报文：{ v, type:'res', id, ok:true, data } 或 { ..., ok:false, error:{code,message} }
+   * 事件报文：{ v, type:'evt', event:'wallet.changed', data:{...} }
+   * 心跳报文：{ v, type:'ping', id }  → 自动回 pong
+   */
+  function _receive(raw) {
+    var msg;
+    try {
+      msg = (typeof raw === 'string') ? JSON.parse(raw) : raw;
+    } catch (e) {
+      warn('invalid JSON from native', e);
+      emit(EVENTS.BRIDGE_ERROR, { code: 'E_PARSE', message: '报文不是合法 JSON' });
+      return false;
+    }
+    if (!msg || typeof msg !== 'object') {
+      emit(EVENTS.BRIDGE_ERROR, { code: 'E_SHAPE', message: '报文不是对象' });
+      return false;
+    }
+    if (msg.v && msg.v !== PROTOCOL) {
+      emit(EVENTS.BRIDGE_WARN, { code: 'E_VERSION', message: '协议版本不一致', got: msg.v, expect: PROTOCOL });
+    }
+
+    try {
+      switch (msg.type) {
+        case 'res': {
+          var id = String(msg.id || '');
+          var p = pending.get(id);
+          if (!p) { log('drop unknown response', id); return false; }
+          pending.delete(id);
+          clearTimeout(p.timer);
+          if (msg.ok === false) {
+            var err = msg.error || {};
+            p.reject(new BridgeError(err.code || 'E_NATIVE', err.message || '原生返回失败', err.detail));
+          } else {
+            p.resolve(msg.data);
+          }
+          return true;
+        }
+        case 'evt': {
+          var name = String(msg.event || '');
+          if (!name) return false;
+          log('event <-', name, msg.data);
+          emit(name, msg.data);
+          return true;
+        }
+        case 'ping': {
+          // 心跳：直接回 pong，让原生确认 JS 侧仍存活
+          dispatch({ v: PROTOCOL, id: msg.id || nextId(), type: 'pong', ts: Date.now() });
+          return true;
+        }
+        case 'pong':
+          return true;
+        default:
+          emit(EVENTS.BRIDGE_WARN, { code: 'E_TYPE', message: '未知报文类型: ' + msg.type });
+          return false;
+      }
+    } catch (e) {
+      // 关键：任何异常都吞掉，绝不让异常穿透到原生 evaluateJavascript 调用栈
+      warn('receive handler error', e);
+      emit(EVENTS.BRIDGE_ERROR, { code: 'E_HANDLER', message: String(e && e.message || e) });
+      return false;
+    }
+  }
+
+  /* ============ 9. 就绪握手 ============
+   * 原生在 WebView 初始化完成后，应发 evt:'app.ready' 或响应 bridge.hello。
+   * 纯浏览器环境立即 resolve，保证同一套代码能在浏览器里跑。
+   */
+  function ready(timeout) {
+    var d = detect();
+    if (d.platform === 'web') {
+      log('ready (web mock)');
+      return Promise.resolve(getEnv());
+    }
+    if (helloed) return Promise.resolve(getEnv());
+    helloed = true;
+
+    return new Promise(function (resolve, reject) {
+      var done = false;
+      var timer = setTimeout(function () {
+        if (done) return;
+        done = true;
+        off(EVENTS.READY, onReady);
+        reject(new BridgeError('E_READY', '原生握手超时'));
+      }, (typeof timeout === 'number' && timeout > 0) ? timeout : cfg.timeout);
+
+      function onReady(data) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        off(EVENTS.READY, onReady);
+        log('ready (native)');
+        resolve({ platform: d.platform, channel: d.channel, protocol: PROTOCOL, data: data });
+      }
+
+      on(EVENTS.READY, onReady);
+      // 主动打一次招呼；原生回 res 或发 app.ready 事件都能完成握手
+      call('bridge.hello', { protocol: PROTOCOL, version: VERSION, ua: (root.navigator && root.navigator.userAgent) || '' })
+        .then(function (data) { onReady(data); })
+        .catch(function () { /* 交给 app.ready 事件或外层超时处理 */ });
+    });
+  }
+
+  /* ============ 10. 浏览器调试 mock ============
+   * 注册一个本地处理器：(envelope, reply) => reply(data, error)
+   * 便于在纯浏览器里模拟原生能力，完全不依赖网络。
+   */
+  function setMockHandler(fn) {
+    mockHandler = (typeof fn === 'function') ? fn : null;
+    return api;
+  }
+
+  /* ============ 11. 老虎机业务封装（只处理虚拟币） ============
+   * 约定：所有金额字段单位都是 CREDITS（玩币），playMoney 恒为 true。
+   * 严禁在此层传入真实货币、订单号、支付凭证或用户身份信息。
+   */
+  var Slots = {
+    EVENTS: EVENTS,
+
+    /** 读取玩币余额 -> { balance:number, currency:'CREDITS' } */
+    getBalance: function () {
+      return call('wallet.balance', { currency: 'CREDITS' });
+    },
+
+    /** 请求一次旋转。bet 必须是有限正数；随机源由谁产生由原生配置决定 */
+    requestSpin: function (params) {
+      params = params || {};
+      var bet = Number(params.bet);
+      if (!isFinite(bet) || bet <= 0) {
+        return Promise.reject(new BridgeError('E_BET', '下注额必须是正数（虚拟币）'));
+      }
+      return call('game.spin', {
+        bet: bet,
+        lines: params.lines || 1,
+        currency: 'CREDITS',
+        playMoney: true,                        // 合规标记：仅玩币
+        clientTs: Date.now()
+      });
+    },
+
+    /** 上报一局结果（埋点 / 对账），同样只含玩币 */
+    reportSpinResult: function (result) {
+      return call('game.result', {
+        spinId: result.spinId || '',
+        reels: Array.isArray(result.reels) ? result.reels.slice(0, 5) : [],
+        win: Number(result.win) || 0,
+        bet: Number(result.bet) || 0,
+        currency: 'CREDITS',
+        playMoney: true
+      });
+    },
+
+    /** 请求震动反馈；失败不应影响游戏，故吞掉错误 */
+    haptic: function (type) {
+      return call('device.haptic', { type: type || 'light' }).catch(function () {});
+    },
+
+    /** 通知原生游戏状态变化 */
+    setGameState: function (stateName) {
+      return notify('game.state', { state: stateName, ts: Date.now() });
+    },
+
+    /** 请求原生关闭 WebView / 返回大厅 */
+    close: function () { return call('app.close', {}).catch(function () {}); },
+
+    /** 下行事件快捷订阅 */
+    onBalanceChanged: function (fn) { return on(EVENTS.WALLET_CHANGED, fn); },
+    onAppState:       function (fn) { return on(EVENTS.STATE, fn); },
+    onPause:          function (fn) { return on(EVENTS.PAUSE, fn); },
+    onResume:         function (fn) { return on(EVENTS.RESUME, fn); },
+    onSpinResult:     function (fn) { return on(EVENTS.SPIN_RESULT, fn); }
+  };
+
+  /* ============ 12. 对外 API ============ */
+  var api = {
+    PROTOCOL: PROTOCOL,
+    VERSION:  VERSION,
+    BridgeError: BridgeError,
+
+    configure: configure,
+    getEnv: getEnv,
+    isNative: function () { return detect().platform !== 'web'; },
+
+    call: call,
+    notify: notify,
+    _receive: _receive,                          // 原生侧唯一入口（下划线表示内部约定）
+    ready: ready,
+
+    on: on, once: once, off: off, emit: emit,   // emit 主要供调试与本地模拟使用
+    setMockHandler: setMockHandler,
+
+    Slots: Slots
+  };
+
+  /* 暴露一个显式标记，方便原生检测桥接脚本是否已注入 */
+  try { Object.defineProperty(api, 'loaded', { value: true, enumerable: false }); } catch (e) {}
+
+  log('loaded', getEnv());
+  return api;
+});
+
+</script>
+<script>
+/* =========================================================================
+ * hybrid-glue.js — 游戏与 NativeBridge 之间的胶水层（纯 JS，无 HTML 标签）
+ * 由 build-hybrid.ps1 读取并用 <script> 包裹后内联进单文件产物。
+ * 单独存在时也可在引入 NativeBridge.js 之后直接 <script> 引入。
+ *
+ * 职责：
+ *   下行：原生事件 → 游戏暂停/恢复、玩币余额播报
+ *   上行：游戏状态与免费旋转结果 → 原生
+ * 纯浏览器环境自动降级为本地 mock，游戏行为完全不变。
+ * ========================================================================= */
+(function () {
+  'use strict';
+  if (!window.NativeBridge) return;                 // 桥未加载则静默降级
+
+  var B = window.NativeBridge;
+  var live = document.getElementById('live');
+  var say = function (msg) { if (live) live.textContent = msg; };
+
+  B.configure({
+    debug: false,
+    // 方法白名单：页面只允许调用这些原生能力，缩小注入攻击面
+    whitelist: [
+      'bridge.hello', 'wallet.balance', 'game.spin', 'game.result',
+      'game.state', 'device.haptic', 'app.close'
+    ]
+  });
+
+  /* ---- 原生 → 游戏 ---- */
+  B.Slots.onPause(function () {
+    if (typeof togglePause === 'function' && typeof state !== 'undefined' && state !== 'paused') togglePause();
+  });
+  B.Slots.onResume(function () {
+    if (typeof togglePause === 'function' && typeof state !== 'undefined' && state === 'paused') togglePause();
+  });
+  B.Slots.onAppState(function (d) {
+    if (d && d.state === 'background' &&
+        typeof state !== 'undefined' && state === 'playing' &&
+        typeof togglePause === 'function') togglePause();
+  });
+  B.Slots.onBalanceChanged(function (d) {
+    // 玩币余额仅用于对账/播报，绝不覆盖本地游戏分数
+    say('玩币余额：' + (d && d.balance));
+  });
+
+  /* ---- 游戏 → 原生 ---- */
+  // 钩子由游戏本体调用；reportSpinResult 只含 CREDITS 与 playMoney:true
+  window.__onSpinResult = function (r) {
+    B.Slots.reportSpinResult(r).catch(function () {});
+    B.Slots.haptic('light');
+  };
+  window.__onGameState = function (s) { B.Slots.setGameState(s); };
+
+  /* ---- 握手：web 环境 ready() 立即 resolve，不产生任何等待 ---- */
+  B.ready().then(function (env) {
+    say('桥接已就绪：' + env.platform);
+    if (!env.isNative) return;                     // 仅原生环境才拉取玩币余额
+    return B.Slots.getBalance().then(function (w) {
+      say('玩币余额：' + (w && w.balance));
+    });
+  }).catch(function () {
+    // 原生桥不可用时完全降级为纯 H5，不提示、不阻塞
+  });
+})();
+
+</script>
+</body>
+</html>
